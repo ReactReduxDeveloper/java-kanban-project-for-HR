@@ -11,7 +11,9 @@ import kanban.model.TaskStatus;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import static kanban.model.TaskStatus.IN_PROGRESS;
 import static kanban.model.TaskStatus.NEW;
 
 public class InMemoryTaskManager implements TaskManager {
@@ -123,6 +125,25 @@ public class InMemoryTaskManager implements TaskManager {
         }
     }
 
+    private void clearMemoryTask() {
+        for (Map.Entry<Integer, Task> entry: tasksMap.entrySet()) {
+            history.remove(entry.getKey());
+        }
+    }
+
+    private void clearMemorySubTask() {
+        for (Map.Entry<Integer, SubTask> entry: subTasksMap.entrySet()) {
+            history.remove(entry.getKey());
+        }
+    }
+
+    private void clearMemoryEpic() {
+        for (Map.Entry<Integer, Epic> entry: epicsMap.entrySet()) {
+            history.remove(entry.getKey());
+        }
+        clearMemorySubTask();
+    }
+
     @Override
     public void updateTask(Task task) {
         if (tasksMap.containsKey(task.getId())) {
@@ -147,8 +168,9 @@ public class InMemoryTaskManager implements TaskManager {
 
     @Override
     public void removeTask(int id) {
-        if (getTask(id) != null) {
+        if (tasksMap.getOrDefault(id,null) != null) {
             tasksMap.remove(id);
+            history.remove(id);
         }
     }
 
@@ -157,8 +179,10 @@ public class InMemoryTaskManager implements TaskManager {
         if (getSubTaskList(id) != null) {
             for (int i = 0; i < getSubTaskList(id).size(); i++) {
                 subTasksMap.remove(getSubTaskList(id).get(i));
+                history.remove(getSubTaskList(id).get(i));
             }
             epicsMap.remove(id);
+            history.remove(id);
         }
     }
 
@@ -168,6 +192,7 @@ public class InMemoryTaskManager implements TaskManager {
             getSubTaskList(getSubTask(id).getEpicId()).remove((Integer) id);
             updateStatusEpic(getSubTask(id).getEpicId());
             subTasksMap.remove(id);
+            history.remove(id);
 
         }
     }
@@ -178,10 +203,12 @@ public class InMemoryTaskManager implements TaskManager {
         int statusDone = 0;
         if (getSubTaskList(id) != null) {
             for (int i = 0; i < getSubTaskList(id).size(); i++) {
-                if (getSubTask(getSubTaskList(id).get(i)).equals(TaskStatus.IN_PROGRESS)) {
-                    statusInProgress++;
-                } else {
-                    statusDone++;
+                if (subTasksMap.getOrDefault(getSubTaskList(id).get(i),null) != null) {
+                    if (subTasksMap.getOrDefault((getSubTaskList(id).get(i)),null).getStatus() == IN_PROGRESS) {
+                        statusInProgress++;
+                    } else {
+                        statusDone++;
+                    }
                 }
             }
             if (statusInProgress < 1 && statusDone < 1) {
