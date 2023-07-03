@@ -225,4 +225,8 @@ public class InMemoryTaskManager implements TaskManager {
     public List<Task> getHistory() {
         return history.getHistory();
     }
+
+    public HistoryManager getHistoryManager() {
+        return history;
+    }
 }
